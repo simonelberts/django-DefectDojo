@@ -6,7 +6,7 @@ DefectDojo is a security program and vulnerability management tool. DefectDojo a
 
 [![Build Status](https://travis-ci.org/OWASP/django-DefectDojo.svg?branch=master)](https://travis-ci.org/OWASP/django-DefectDojo)
 
-# Quick Start doei
+# Quick Start
 
 ```bash
 $ git clone https://github.com/OWASP/django-DefectDojo
