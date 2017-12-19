@@ -22,6 +22,7 @@ from jira import JIRA
 from jira.exceptions import JIRAError
 from dojo.models import Finding, Scan, Test, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
+                        TRELLO_PKey, TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
 from django_slack import slack_message
 

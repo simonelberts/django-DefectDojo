@@ -20,6 +20,7 @@ from dojo.models import Finding, Product_Type, Product, ScanSettings, VA, \
     Check_List, User, Engagement, Test, Test_Type, Notes, Risk_Acceptance, \
     Development_Environment, Dojo_User, Scan, Endpoint, Stub_Finding, Finding_Template, Report, FindingImage, \
     JIRA_Issue, JIRA_PKey, JIRA_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
+    TRELLO_Issue, TRELLO_PKey, TRELLO_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
     Cred_User, Cred_Mapping, System_Settings, Notifications
 from dojo.utils import get_system_setting
 
@@ -1281,6 +1282,12 @@ class JIRAForm(forms.ModelForm):
         model = JIRA_Conf
         exclude = ['product']
 
+class TRELLOForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput, required=True)
+
+    class Meta:
+        model = TRELLO_Conf
+        exclude = ['product']
 
 class ToolTypeForm(forms.ModelForm):
     class Meta:
@@ -1362,6 +1369,12 @@ class JIRAPKeyForm(forms.ModelForm):
         model = JIRA_PKey
         exclude = ['product']
 
+class TRELLOPKeyForm(forms.ModelForm):
+    conf = forms.ModelChoiceField(queryset=TRELLO_Conf.objects.all(), label='TRELLO Configuration')
+
+    class Meta:
+        model = TRELLO_PKey
+        exclude = ['product']
 
 class JIRAFindingForm(forms.Form):
     def __init__(self, *args, **kwargs):
@@ -1371,3 +1384,12 @@ class JIRAFindingForm(forms.Form):
         self.fields['push_to_jira'].required = False
 
     push_to_jira = forms.BooleanField(required=False)
+
+class TRELLOFindingForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        self.enabled = kwargs.pop('enabled')
+        super(TRELLOFindingForm, self).__init__(*args, **kwargs)
+        self.fields['push_to_trello'] = forms.BooleanField(initial=self.enabled)
+        self.fields['push_to_trello'].required = False
+
+    push_to_trello = forms.BooleanField(required=False)
