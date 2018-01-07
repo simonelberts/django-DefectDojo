@@ -1370,7 +1370,7 @@ class JIRAPKeyForm(forms.ModelForm):
         exclude = ['product']
 
 class TRELLOPKeyForm(forms.ModelForm):
-    conf = forms.ModelChoiceField(queryset=TRELLO_Conf.objects.all(), label='TRELLO Configuration')
+    conf = forms.ModelChoiceField(queryset=TRELLO_Conf.objects.all(), label='Trello Configuration')
 
     class Meta:
         model = TRELLO_PKey
