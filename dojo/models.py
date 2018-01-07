@@ -32,7 +32,7 @@ class System_Settings(models.Model):
                                                   'less recent finding as a duplicate. When deduplication is enabled, a list of ' \
                                                   'deduplicated findings is added to the engagement view.')
     enable_jira = models.BooleanField(default=False, verbose_name='Enable JIRA integration', blank=False)
-    enable_trello = models.BooleanField(default=False, verbose_name='Enable TRELLO integration', blank=False)
+    enable_trello = models.BooleanField(default=False, verbose_name='Enable Trello integration', blank=False)
     enable_slack_notifications = models.BooleanField(default=False, verbose_name='Enable Slack notifications', blank=False)
     slack_channel = models.CharField(max_length=100, default='', blank=True)
     slack_token = models.CharField(max_length=100, default='', blank=True, help_text='Token required for interacting with Slack. Get one at https://api.slack.com/tokens')
@@ -1032,6 +1032,7 @@ class JIRA_Conf(models.Model):
 
 class TRELLO_Conf(models.Model):
     api_key = models.CharField(max_length=600, null=True, blank=True, verbose_name="API Key")
+    url =  models.URLField(max_length=2000, null=True, blank=True, verbose_name="TRELLO URL")
 
 class JIRA_Issue(models.Model):
     jira_id =  models.CharField(max_length=200)
@@ -1077,7 +1078,7 @@ class TRELLO_Details_Cache(models.Model):
 class TRELLO_PKey(models.Model):
     project_key = models.CharField(max_length=200, blank=True)
     product = models.ForeignKey(Product)
-    conf = models.ForeignKey(TRELLO_Conf, verbose_name="JIRA Configuration", null=True, blank=True)
+    conf = models.ForeignKey(TRELLO_Conf, verbose_name="Trello Configuration", null=True, blank=True)
     component = models.CharField(max_length=200, blank=True)
     push_all_issues = models.BooleanField(default=False, blank=True)
 #   enable_engagement_epic_mapping = models.BooleanField(default=False, blank=True)

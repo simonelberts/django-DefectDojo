@@ -90,9 +90,9 @@ def new_trello(request):
         if jform.is_valid():
             try:
                 '''get the trello url for the token'''
-                trello = TrelloApi('1c2f484151a65f7653422cc628a3246e')
+                trello_api_key = '1c2f484151a65f7653422cc628a3246e'
+                trello = TrelloApi(trello_api_key)
                 token_url = trello.get_token_url('Defectdojo', expires='never', write_access=True)
-                test = 'test'
                 '''save config to db'''
                 new_j = jform.save(commit=False)
                 new_j.url = token_url
@@ -101,7 +101,8 @@ def new_trello(request):
                                      messages.SUCCESS,
                                      'TRELLO Configuration Successfully Created.',
                                      extra_tags='alert-success')
-                return HttpResponseRedirect(token_url)
+                return render(request, 'dojo/trello.html',
+                  {'trello_api_key': trello_api_key})
             except:
                 messages.add_message(request,
                                      messages.ERROR,
@@ -129,7 +130,7 @@ def edit_trello(request, jid):
                 new_j.save()
                 messages.add_message(request,
                                      messages.SUCCESS,
-                                     'TRELLO Configuration Successfully Created.',
+                                     'Trello Configuration Successfully Created.',
                                      extra_tags='alert-success')
                 return HttpResponseRedirect(reverse('trello', ))
             except:
@@ -139,7 +140,7 @@ def edit_trello(request, jid):
                                      extra_tags='alert-danger')
     else:
         jform = TRELLOForm(instance=trello)
-    add_breadcrumb(title="Edit TRELLO Configuration", top_level=False, request=request)
+    add_breadcrumb(title="Edit Trello Configuration", top_level=False, request=request)
 
     return render(request,
                   'dojo/edit_trello.html',
@@ -157,7 +158,7 @@ def delete_issue(request, find):
 @user_passes_test(lambda u: u.is_staff)
 def trello(request):
     confs = TRELLO_Conf.objects.all()
-    add_breadcrumb(title="TRELLO List", top_level=not len(request.GET), request=request)
+    add_breadcrumb(title="Trello List", top_level=not len(request.GET), request=request)
     return render(request,
                   'dojo/trello.html',
                   {'confs': confs,

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load navigation_tags %}
 {% block content %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <div class="row">
         <div class="col-md-12">
             <div class="panel panel-default">
@@ -47,7 +48,10 @@
                                     <a href="{% url 'edit_trello' conf.id %}"><b>{{ conf.url }}</b></a>
                                 </td>
                                 <td>
-                                        {{ test }}
+                                        {{ conf.id }}
+                                </td>
+                                <td>
+                                        {{ conf.api_key }}
                                 </td>
                             </tr>
                         {% endfor %}
@@ -62,6 +66,33 @@
             {% endif %}
         </div>
     </div>
+{% if trello_api_key %}
+<script src="https://api.trello.com/1/client.js?key={{ trello_api_key }}"></script>
+<script>
+var authenticationSuccess = function() {
+  console.log('Successful authentication');
+};
+
+var authenticationFailure = function() {
+  console.log('Failed authentication');
+};
+</script>
+
+<!-- authenticate -->
+<script>
+window.Trello.authorize({
+  type: 'popup',
+  name: 'Defectdojo',
+  scope: {
+    read: 'true',
+    write: 'true' },
+  expiration: 'never',
+  success: authenticationSuccess,
+  error: authenticationFailure
+});
+</script>
+
+{% endif %}
 {% endblock %}
 {% block postscript %}
     {% include "dojo/filter_js_snippet.html" %}
