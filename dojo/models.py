@@ -1031,13 +1031,7 @@ class JIRA_Conf(models.Model):
             return 'N/A'
 
 class TRELLO_Conf(models.Model):
-    url =  models.URLField(max_length=2000, verbose_name="Trello URL")
     api_key = models.CharField(max_length=600, null=True, blank=True, verbose_name="API Key")
-    username = models.CharField(max_length=2000 )
-    password = models.CharField(max_length=2000)
-
-    def __unicode__(self):
-        return self.url + " | " + self.username
 
 class JIRA_Issue(models.Model):
     jira_id =  models.CharField(max_length=200)
