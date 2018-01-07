@@ -21,6 +21,11 @@
                 <hr>
                 {% include "dojo/form_fields.html" with form=jform %}
             {% endif %}
+            {%  if tform %}
+                <h3> Trello </h3>
+                <hr>
+                {% include "dojo/form_fields.html" with form=jform %}
+            {% endif %}
             <div class="form-group">
                 <div class="col-sm-offset-2 col-sm-10">
                     <input type="submit" value="Add Another Finding"/>
@@ -34,6 +39,9 @@
             {% include "dojo/form_fields.html" with form=form %}
             {%  if jform %}
                 {% include "dojo/form_fields.html" with form=jform %}
+            {% endif %}
+            {%  if tform %}
+                {% include "dojo/form_fields.html" with form=tform %}
             {% endif %}
             <div class="form-group">
                 <div class="col-sm-offset-2 col-sm-10">

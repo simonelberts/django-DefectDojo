@@ -26,11 +26,11 @@ from dojo.filters import OpenFindingFilter, \
     OpenFingingSuperFilter, AcceptedFingingSuperFilter, \
     ClosedFingingSuperFilter, TemplateFindingFilter
 from dojo.forms import NoteForm, CloseFindingForm, FindingForm, PromoteFindingForm, FindingTemplateForm, \
-    DeleteFindingTemplateForm, FindingImageFormSet, JIRAFindingForm, ReviewFindingForm, ClearFindingReviewForm, \
+    DeleteFindingTemplateForm, FindingImageFormSet, JIRAFindingForm, TRELLOFindingForm, ReviewFindingForm, ClearFindingReviewForm, \
     DefectFindingForm, StubFindingForm
 from dojo.models import Product_Type, Finding, Notes, \
     Risk_Acceptance, BurpRawRequestResponse, Stub_Finding, Endpoint, Finding_Template, FindingImage, \
-    FindingImageAccessToken, JIRA_Issue, JIRA_PKey, JIRA_Conf, Dojo_User, Cred_User, Cred_Mapping, Test
+    FindingImageAccessToken, JIRA_Issue, JIRA_PKey, JIRA_Conf,TRELLO_PKey, TRELLO_Conf, Dojo_User, Cred_User, Cred_Mapping, Test
 from dojo.utils import get_page_items, add_breadcrumb, FileIterWrapper, send_review_email, process_notifications, \
     add_comment, add_epic, add_issue, update_epic, update_issue, close_epic, jira_get_resolution_id, \
     jira_change_resolution_id, get_jira_connection, get_system_setting, create_notification
@@ -350,8 +350,15 @@ def edit_finding(request, fid):
     form.initial['tags'] = [tag.name for tag in finding.tags]
     form_error = False
     jform = None
+    tform = None
     try:
         jissue = JIRA_Issue.objects.get(finding=finding)
+        enabled = True
+    except:
+        enabled = False
+        pass
+    try:
+        tissue = TRELLO_Issue.objects.get(finding=finding)
         enabled = True
     except:
         enabled = False
@@ -359,6 +366,8 @@ def edit_finding(request, fid):
 
     if get_system_setting('enable_jira') and JIRA_PKey.objects.filter(product=finding.test.engagement.product) != 0:
         jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
+    if get_system_setting('enable_trello') and TRELLO_PKey.objects.filter(product=finding.test.engagement.product) != 0:
+        tform = TRELLOFindingForm(enabled=enabled, prefix='trelloform')
 
     if request.method == 'POST':
         form = FindingForm(request.POST, instance=finding)
@@ -393,6 +402,19 @@ def edit_finding(request, fid):
                         update_issue_task.delay(new_finding, old_status, jform.cleaned_data.get('push_to_jira'))
                     except:
                         add_issue_task.delay(new_finding, jform.cleaned_data.get('push_to_jira'))
+                        pass
+            tags = request.POST.getlist('tags')
+            t = ", ".join(tags)
+            new_finding.tags = t
+
+            if 'trelloform-push_to_trello' in request.POST:
+                tform = TRELLOFindingForm(request.POST, prefix='trelloform', enabled=enabled)
+                if tform.is_valid():
+                    try:
+                        tissue = TRELLO_Issue.objects.get(finding=new_finding)
+                        update_issue_task.delay(new_finding, old_status, jform.cleaned_data.get('push_to_jira'))# is een jira func moet later aangepast worden
+                    except:
+                        add_issue_task.delay(new_finding, jform.cleaned_data.get('push_to_jira'))# zelfde
                         pass
             tags = request.POST.getlist('tags')
             t = ", ".join(tags)
@@ -441,7 +463,8 @@ def edit_finding(request, fid):
     return render(request, 'dojo/edit_findings.html',
                   {'form': form,
                    'finding': finding,
-                   'jform' : jform
+                   'jform' : jform,
+                   'tform' : tform
                    })
 
 
