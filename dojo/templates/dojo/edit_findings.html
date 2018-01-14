@@ -2,6 +2,7 @@
 {% load event_tags %}
 {% load static from staticfiles %}
 {% block add_css %}
+{{aaa}}
     <link rel="stylesheet" href="{% static "chosen-bootstrap/chosen.bootstrap.min.css" %}">
 {% endblock %}
 {% block add_styles %}
@@ -24,7 +25,7 @@
             {%  if tform %}
                 <h3> Trello </h3>
                 <hr>
-                {% include "dojo/form_fields.html" with form=jform %}
+                {% include "dojo/form_fields.html" with form=tform %}
             {% endif %}
             <div class="form-group">
                 <div class="col-sm-offset-2 col-sm-10">
@@ -37,6 +38,11 @@
         <form class="form-horizontal" action="{% url 'edit_finding' finding.id %}" method="post">
             {% csrf_token %}
             {% include "dojo/form_fields.html" with form=form %}
+            <div id='token'> </div>
+            <script> 
+                var trello_token = localStorage.getItem('trello_token');
+                document.getElementById('token').innerHTML = '<input hidden id = "trello_token" name = "trello_token" type="text" value='+ trello_token +'>';
+            </script>
             {%  if jform %}
                 {% include "dojo/form_fields.html" with form=jform %}
             {% endif %}

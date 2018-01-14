@@ -90,12 +90,11 @@ def new_trello(request):
         if jform.is_valid():
             try:
                 '''get the trello url for the token'''
-                trello_api_key = '1c2f484151a65f7653422cc628a3246e'
-                trello = TrelloApi(trello_api_key)
-                token_url = trello.get_token_url('Defectdojo', expires='never', write_access=True)
+                #trello_api_key = '1c2f484151a65f7653422cc628a3246e'
                 '''save config to db'''
+                trello_api_key = jform.cleaned_data.get('api_key')
                 new_j = jform.save(commit=False)
-                new_j.url = token_url
+                new_j.api_key = trello_api_key
                 new_j.save()
                 messages.add_message(request,
                                      messages.SUCCESS,

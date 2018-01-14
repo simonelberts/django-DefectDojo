@@ -7,6 +7,7 @@ import os
 import shutil
 from jira import JIRA
 from datetime import datetime
+from selenium import webdriver
 
 from django.conf import settings
 from django.contrib import messages
@@ -30,12 +31,12 @@ from dojo.forms import NoteForm, CloseFindingForm, FindingForm, PromoteFindingFo
     DefectFindingForm, StubFindingForm
 from dojo.models import Product_Type, Finding, Notes, \
     Risk_Acceptance, BurpRawRequestResponse, Stub_Finding, Endpoint, Finding_Template, FindingImage, \
-    FindingImageAccessToken, JIRA_Issue, JIRA_PKey, JIRA_Conf,TRELLO_PKey, TRELLO_Conf, Dojo_User, Cred_User, Cred_Mapping, Test
+    FindingImageAccessToken, JIRA_Issue, JIRA_PKey, JIRA_Conf, TRELLO_Issue, TRELLO_PKey, TRELLO_Conf, Dojo_User, Cred_User, Cred_Mapping, Test
 from dojo.utils import get_page_items, add_breadcrumb, FileIterWrapper, send_review_email, process_notifications, \
     add_comment, add_epic, add_issue, update_epic, update_issue, close_epic, jira_get_resolution_id, \
     jira_change_resolution_id, get_jira_connection, get_system_setting, create_notification
 
-from dojo.tasks import add_issue_task, update_issue_task, add_comment_task
+from dojo.tasks import add_issue_task, update_issue_task,add_trello_issue_task, update_trello_issue_task, add_comment_task
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -52,6 +53,34 @@ on the nav menu open findings returns all the open findings for a given
 engineer
 """
 
+class LocalStorage:
+
+  def __init__(self, driver):
+    self.driver = driver
+
+  def set(self, key, value):
+    self.driver.execute_script(\
+      "window.localStorage.setItem('{}',{})".format(key, json.dumps(value)))
+
+  def get(self, key=None):
+    if key:
+      return self.driver.execute_script(\
+        "return window.localStorage.getItem('{}')".format(key))
+    else:
+      return self.driver.execute_script("""
+        var items = {}, ls = window.localStorage;
+        for (var i = 0, k; i < ls.length; i++)
+          items[k = ls.key(i)] = ls.getItem(k);
+        return items;
+        """)
+
+  def remove(self, key):
+    self.driver.execute_script(\
+      "window.localStorage.removeItem('{}');".format(key))
+
+  def clear(self):
+    self.driver.execute_script(\
+      "window.localStorage.clear();")
 
 def open_findings(request):
     findings = Finding.objects.filter(mitigated__isnull=True,
@@ -344,6 +373,7 @@ def delete_finding(request, fid):
 
 @user_passes_test(lambda u: u.is_staff)
 def edit_finding(request, fid):
+    aaa = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
     finding = get_object_or_404(Finding, id=fid)
     old_status = finding.status()
     form = FindingForm(instance=finding)
@@ -368,6 +398,7 @@ def edit_finding(request, fid):
         jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
     if get_system_setting('enable_trello') and TRELLO_PKey.objects.filter(product=finding.test.engagement.product) != 0:
         tform = TRELLOFindingForm(enabled=enabled, prefix='trelloform')
+        aaa = 'PPPPPPPPPPPPPPPPPPPPPPPP'
 
     if request.method == 'POST':
         form = FindingForm(request.POST, instance=finding)
@@ -406,15 +437,21 @@ def edit_finding(request, fid):
             tags = request.POST.getlist('tags')
             t = ", ".join(tags)
             new_finding.tags = t
-
             if 'trelloform-push_to_trello' in request.POST:
                 tform = TRELLOFindingForm(request.POST, prefix='trelloform', enabled=enabled)
                 if tform.is_valid():
                     try:
+                        aaa = '111111111111111111111111111'
                         tissue = TRELLO_Issue.objects.get(finding=new_finding)
-                        update_issue_task.delay(new_finding, old_status, jform.cleaned_data.get('push_to_jira'))# is een jira func moet later aangepast worden
+                        update_trello_issue_task.delay(new_finding, old_status, tform.cleaned_data.get('push_to_trello'))
                     except:
-                        add_issue_task.delay(new_finding, jform.cleaned_data.get('push_to_jira'))# zelfde
+                        aaa = '222222222222222222222222222'
+                        #driver = webdriver.Firefox()
+                        # get the local storage
+                        #storage = LocalStorage(driver)
+                        add_trello_issue_task.delay(new_finding, tform.cleaned_data.get('push_to_trello'))
+                        #aaa = request.COOKIES
+                        aaa = request.POST.get('trello_token')
                         pass
             tags = request.POST.getlist('tags')
             t = ", ".join(tags)
@@ -446,7 +483,14 @@ def edit_finding(request, fid):
                                          messages.SUCCESS,
                                          'A finding template was also created.',
                                          extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('view_finding', args=(new_finding.id,)))
+            #return HttpResponseRedirect(reverse('view_finding', args=(new_finding.id,)))
+            return render(request, 'dojo/edit_findings.html',
+                  {'form': form,
+                   'finding': finding,
+                   'jform' : jform,
+                   'tform' : tform,
+                   'aaa' : aaa
+                   })
         else:
             messages.add_message(request,
                                  messages.ERROR,
@@ -464,7 +508,8 @@ def edit_finding(request, fid):
                   {'form': form,
                    'finding': finding,
                    'jform' : jform,
-                   'tform' : tform
+                   'tform' : tform,
+                   'aaa' : aaa
                    })
 
 

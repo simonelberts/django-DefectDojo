@@ -1084,6 +1084,13 @@ class TRELLO_PKey(models.Model):
 #   enable_engagement_epic_mapping = models.BooleanField(default=False, blank=True)
     push_notes = models.BooleanField(default=False, blank=True)
 
+class TRELLO_board(models.Model):
+    trello_board_id =  models.CharField(max_length=200)
+    trello_board_name = models.CharField(max_length=200)
+
+class TRELLO_card(models.Model):
+    trello_card_name = models.CharField(max_length=200)
+
 NOTIFICATION_CHOICES=(("slack","slack"),("hipchat","hipchat"),("mail","mail"),("alert","alert"))
 class Notifications(models.Model):
     engagement_added = MultiSelectField(choices=NOTIFICATION_CHOICES, default='alert', blank=True)

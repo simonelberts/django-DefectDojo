@@ -719,6 +719,28 @@ def add_issue(find, push_to_jira):
         else:
             log_jira_alert("Finding not active or verified.", find)
 
+def add_trello_issue(find, push_to_trello):
+    eng = Engagement.objects.get(test=find.test)
+    prod =  Product.objects.get(engagement= eng)
+    tpkey = TRELLO_PKey.objects.get(product=prod)
+    trello_conf = tpkey.conf
+
+    if push_to_trello:
+        if 'Active' in find.status() and 'Verified' in find.status():
+            try:
+                JIRAError.log_to_tempfile=False
+                #jira = JIRA(server=jira_conf.url, basic_auth=(jira_conf.username, jira_conf.password))
+                t_issue = TRELLO_Issue(trello_id=new_issue.id, trello_key=new_issue, finding=find)
+                t_issue.save()
+                #issue = jira.issue(new_issue.id)
+
+                #Add labels (security & product)
+                add_labels(find, new_issue)
+            except JIRAError as e:
+                log_jira_alert(e.text, find)
+        else:
+            log_jira_alert("Finding not active or verified.", find)
+
 def jira_attachment(jira, issue, file, jira_filename=None):
 
     basename = file

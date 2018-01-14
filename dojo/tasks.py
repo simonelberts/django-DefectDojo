@@ -18,7 +18,7 @@ from django.utils import timezone
 import pdfkit
 from dojo.celery import app
 from dojo.reports.widgets import report_widget_factory
-from dojo.utils import add_comment, add_epic, add_issue, update_epic, update_issue, \
+from dojo.utils import add_comment, add_epic, add_issue, add_trello_issue, update_epic, update_issue, \
                         close_epic, get_system_setting, create_notification
 
 logger = get_task_logger(__name__)
@@ -187,6 +187,16 @@ def async_custom_pdf_report(self,
             temp.close()
 
     return True
+
+@task(name='add_trello_issue_task')
+def add_trello_issue_task( find, push_to_trello):
+    logger.info("update trello issue task")
+    add_trello_issue(find, push_to_trello)
+
+@task(name='update_trello_issue_task')
+def update_trello_issue_task(find, old_status, push_to_trello):
+    logger.info("add trello issue task")
+    update_trello_issue(find, old_status, push_to_trello)
 
 @task(name='add_issue_task')
 def add_issue_task( find, push_to_jira):
