@@ -62,6 +62,15 @@ def new_trello_card(backlog_list_id, name, desc, label_id):
     return card_data['id']
 
 
+def add_trello_card_comment(card_id, comment):
+
+    url = URL_BASE + "cards/" + card_id + "/actions/comments/"
+    params = params_builder({'text': comment})
+    comment_data = request_helper(url, params)
+
+    return comment_data
+
+
 # Helper methods
 def request_helper(url, params):
     response = requests.request(method="POST", url=url, data=json.dumps(params), headers=HEADERS)
@@ -85,8 +94,8 @@ all_labels = create_default_labels(boardId)
 print all_labels
 
 # make a test card
-trello_card = new_trello_card(backlog_list_id=all_lists['Back Log'],
+trello_card_id = new_trello_card(backlog_list_id=all_lists['Back Log'],
                               name='XXS Scripting vulnerability',
                               desc='A XXS Scripting vulnerability was found, please take appropriate actions',
                               label_id=all_labels['Critical'])
-print trello_card
+comment = add_trello_card_comment(trello_card_id, "add a description for the finding here")
