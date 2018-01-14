@@ -99,7 +99,7 @@ def new_trello(request):
                 new_j.save()
                 messages.add_message(request,
                                      messages.SUCCESS,
-                                     'TRELLO Configuration Successfully Created.',
+                                     'Trello Configuration Successfully Created.',
                                      extra_tags='alert-success')
                 return render(request, 'dojo/trello.html',
                   {'trello_api_key': trello_api_key})
