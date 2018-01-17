@@ -1283,7 +1283,6 @@ class JIRAForm(forms.ModelForm):
         exclude = ['product']
 
 class TRELLOForm(forms.ModelForm):
-    #password = forms.CharField(widget=forms.PasswordInput, required=True)
 
     class Meta:
         model = TRELLO_Conf

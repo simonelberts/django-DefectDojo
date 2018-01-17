@@ -23,7 +23,7 @@ from jira import JIRA
 from jira.exceptions import JIRAError
 from dojo.models import Finding, Scan, Test, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
-                        TRELLO_PKey, TRELLO_Issue, \
+                        TRELLO_PKey, TRELLO_board ,TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
 from django_slack import slack_message
 # from dojo.trello_default import trello_default
@@ -823,14 +823,28 @@ def close_epic(eng, push_to_jira):
         r = requests.post(url=req_url, auth=HTTPBasicAuth(jira_conf.username, jira_conf.password), json=json_data)
 
 
-def update_trello_issue(new_finding, tconf):
-    #make call to trello to push the content
+def make_trello_board(tconf,boardName):
+
     API_KEY = tconf.api_key
     TOKEN = tconf.token
     trello = TrelloApi(API_KEY)
     trello.set_token(TOKEN)
-    trello.boards.new('scan3')
 
+    trello_board = trello.boards.new(boardName)
+    board_id = trello_board.get('id')
+    board_name = trello_board.get('name')
+    board_url = trello_board.get('url')
+    board_shortUrl = trello_board.get('shortUrl')
+    
+    #save to db
+    new_trello_board = TRELLO_board(trello_board_id=board_id,trello_board_name=board_name,shortUrl=board_url,url = board_shortUrl)
+    new_trello_board.save()
+
+
+def update_trello_issue(new_finding, tconf):
+    #make call to trello to push the content
+    boardName = 'scan'
+    make_trello_board(tconf, boardName)
     #prod = Product.objects.get(engagement=Engagement.objects.get(test=find.test))
     #jpkey = JIRA_PKey.objects.get(product=prod)
     #jira_conf = jpkey.conf

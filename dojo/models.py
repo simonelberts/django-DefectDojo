@@ -1088,6 +1088,8 @@ class TRELLO_PKey(models.Model):
 class TRELLO_board(models.Model):
     trello_board_id =  models.CharField(max_length=200)
     trello_board_name = models.CharField(max_length=200)
+    shortUrl = models.CharField(max_length=200, default=None)
+    url = models.CharField(max_length=200, default=None)
 
 class TRELLO_card(models.Model):
     trello_card_name = models.CharField(max_length=200)
