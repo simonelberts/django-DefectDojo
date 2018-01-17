@@ -33,7 +33,7 @@ from dojo.models import Product_Type, Finding, Notes, \
     Risk_Acceptance, BurpRawRequestResponse, Stub_Finding, Endpoint, Finding_Template, FindingImage, \
     FindingImageAccessToken, JIRA_Issue, JIRA_PKey, JIRA_Conf, TRELLO_Issue, TRELLO_PKey, TRELLO_Conf, Dojo_User, Cred_User, Cred_Mapping, Test
 from dojo.utils import get_page_items, add_breadcrumb, FileIterWrapper, send_review_email, process_notifications, \
-    add_comment, add_epic, add_issue, update_epic, update_issue, close_epic, jira_get_resolution_id, \
+    add_comment, add_epic, add_issue, update_epic, update_issue, update_trello_issue, close_epic, jira_get_resolution_id, \
     jira_change_resolution_id, get_jira_connection, get_system_setting, create_notification
 
 from dojo.tasks import add_issue_task, update_issue_task,add_trello_issue_task, update_trello_issue_task, add_comment_task
@@ -443,15 +443,20 @@ def edit_finding(request, fid):
                     try:
                         aaa = '111111111111111111111111111'
                         tissue = TRELLO_Issue.objects.get(finding=new_finding)
-                        update_trello_issue_task.delay(new_finding, old_status, tform.cleaned_data.get('push_to_trello'))
                     except:
                         aaa = '222222222222222222222222222'
-                        #driver = webdriver.Firefox()
-                        # get the local storage
-                        #storage = LocalStorage(driver)
                         add_trello_issue_task.delay(new_finding, tform.cleaned_data.get('push_to_trello'))
-                        #aaa = request.COOKIES
-                        aaa = request.POST.get('trello_token')
+                        tconf = TRELLO_Conf.objects.all().last()
+                        token = request.POST.get('trello_token')
+                        #TRELLO_Conf.save(tconf)
+                        if tconf.token:
+                            update_trello_issue_task(new_finding, tconf)
+                        else:
+                            tconf.token = token
+                            TRELLO_Conf.save(tconf)
+                            if tconf.token:
+                                aaa = new_finding
+                                update_trello_issue_task(new_finding, tconf)
                         pass
             tags = request.POST.getlist('tags')
             t = ", ".join(tags)

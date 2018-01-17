@@ -5,6 +5,7 @@ from Crypto.Cipher import AES
 from calendar import monthrange
 from datetime import date, datetime, timedelta
 from math import pi, sqrt
+from trello import TrelloApi
 
 import vobject
 import requests
@@ -25,6 +26,7 @@ from dojo.models import Finding, Scan, Test, Engagement, Stub_Finding, Finding_T
                         TRELLO_PKey, TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
 from django_slack import slack_message
+# from dojo.trello_default import trello_default
 
 
 """
@@ -728,14 +730,8 @@ def add_trello_issue(find, push_to_trello):
     if push_to_trello:
         if 'Active' in find.status() and 'Verified' in find.status():
             try:
-                JIRAError.log_to_tempfile=False
-                #jira = JIRA(server=jira_conf.url, basic_auth=(jira_conf.username, jira_conf.password))
                 t_issue = TRELLO_Issue(trello_id=new_issue.id, trello_key=new_issue, finding=find)
                 t_issue.save()
-                #issue = jira.issue(new_issue.id)
-
-                #Add labels (security & product)
-                add_labels(find, new_issue)
             except JIRAError as e:
                 log_jira_alert(e.text, find)
         else:
@@ -825,6 +821,32 @@ def close_epic(eng, push_to_jira):
         j_issue = JIRA_Issue.objects.get(engagement=eng)
         json_data = {'transition':{'id':jira_conf.close_status_key}}
         r = requests.post(url=req_url, auth=HTTPBasicAuth(jira_conf.username, jira_conf.password), json=json_data)
+
+
+def update_trello_issue(new_finding, tconf):
+    #make call to trello to push the content
+    API_KEY = tconf.api_key
+    TOKEN = tconf.token
+    trello = TrelloApi(API_KEY)
+    trello.set_token(TOKEN)
+    trello.boards.new('scan3')
+
+    #prod = Product.objects.get(engagement=Engagement.objects.get(test=find.test))
+    #jpkey = JIRA_PKey.objects.get(product=prod)
+    #jira_conf = jpkey.conf
+
+def close_epic(eng, push_to_jira):
+    engagement = eng
+    prod = Product.objects.get(engagement=engagement)
+    jpkey = JIRA_PKey.objects.get(product=prod)
+    jira_conf = jpkey.conf
+    if jpkey.enable_engagement_epic_mapping and push_to_jira:
+        j_issue = JIRA_Issue.objects.get(engagement=eng)
+        req_url = jira_conf.url+'/rest/api/latest/issue/'+ j_issue.jira_id+'/transitions'
+        j_issue = JIRA_Issue.objects.get(engagement=eng)
+        json_data = {'transition':{'id':jira_conf.close_status_key}}
+        r = requests.post(url=req_url, auth=HTTPBasicAuth(jira_conf.username, jira_conf.password), json=json_data)
+
 
 def update_epic(eng, push_to_jira):
     engagement = eng

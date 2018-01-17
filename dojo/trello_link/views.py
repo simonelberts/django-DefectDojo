@@ -144,7 +144,7 @@ def edit_trello(request, jid):
     return render(request,
                   'dojo/edit_trello.html',
                   {
-                      'jform': jform,
+                      'jform': jform
                   })
 
 @user_passes_test(lambda u: u.is_staff)

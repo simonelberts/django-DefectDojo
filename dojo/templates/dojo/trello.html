@@ -37,19 +37,17 @@
                            class="tablesorter-bootstrap table table-bordered table-condensed table-striped">
                         <thead>
                         <tr>
-                            <th>URL</th>
-                            <th> Username</th>
+                            <th>Description</th>
+                            <th>API key</th>
                         </tr>
                         </thead>
                         <tbody>
                         {% for conf in confs %}
                             <tr>
                                 <td>
-                                    <a href="{% url 'edit_trello' conf.id %}"><b>{{ conf.url }}</b></a>
+                                      <b>{{ conf.description }}</b>
                                 </td>
-                                <td>
-                                        {{ conf.id }}
-                                </td>
+
                                 <td>
                                         {{ conf.api_key }}
                                 </td>

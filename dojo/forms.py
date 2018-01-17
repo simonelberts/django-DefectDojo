@@ -1287,7 +1287,7 @@ class TRELLOForm(forms.ModelForm):
 
     class Meta:
         model = TRELLO_Conf
-        exclude = ['product','url']
+        exclude = ['product','token']
 
 class ToolTypeForm(forms.ModelForm):
     class Meta:

@@ -1032,7 +1032,8 @@ class JIRA_Conf(models.Model):
 
 class TRELLO_Conf(models.Model):
     api_key = models.CharField(max_length=600, null=True, blank=True, verbose_name="API Key")
-    url =  models.URLField(max_length=2000, null=True, blank=True, verbose_name="TRELLO URL")
+    description = models.CharField(max_length=2000, null=True, blank=True, verbose_name="Description")
+    token = models.CharField(max_length=2000, null=True, blank=True, verbose_name="token")
 
 class JIRA_Issue(models.Model):
     jira_id =  models.CharField(max_length=200)
