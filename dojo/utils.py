@@ -23,7 +23,7 @@ from jira import JIRA
 from jira.exceptions import JIRAError
 from dojo.models import Finding, Scan, Test, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
-                        TRELLO_PKey, TRELLO_board ,TRELLO_Issue, \
+                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
 from django_slack import slack_message
 # from dojo.trello_default import trello_default
@@ -833,19 +833,30 @@ def update_trello_issue(new_finding, tconf):
     TOKEN = tconf.token
     trello = TrelloApi(API_KEY)
     trello.set_token(TOKEN)
-
     boardName = 'scan'
 
-    #make trello board
-    trello_board = trello.boards.new(boardName)
-    board_id = trello_board.get('id')
-    board_name = trello_board.get('name')
-    board_url = trello_board.get('url')
-    board_shortUrl = trello_board.get('shortUrl')
+    try:
+        trello_item = TRELLO_items.objects.get(finding_id = new_finding.id)
+    except:
+        boardName = 'not defined'
+        #make new trello board
+        trello_board = trello.boards.new(boardName)
+        #define trello attributes
+        board_id = trello_board.get('id')
+        board_name = trello_board.get('name')
+        board_url = trello_board.get('url')
+        board_shortUrl = trello_board.get('shortUrl')
+        #save new trello item
+        new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=board_id)
+        new_trello_item.save()
+        #save new board to db
+        new_trello_board = TRELLO_board(trello_board_id=board_id,trello_board_name=board_name,shortUrl=board_url,url = board_shortUrl)
+        new_trello_board.save()
+        
+    else:
+        boardName = 'defined'
+        trello_board = trello.boards.new(boardName)
 
-    #save to db
-    new_trello_board = TRELLO_board(trello_board_id=board_id,trello_board_name=board_name,shortUrl=board_url,url = board_shortUrl)
-    new_trello_board.save()
 
 def close_epic(eng, push_to_jira):
     engagement = eng
