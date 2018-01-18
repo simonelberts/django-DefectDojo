@@ -823,31 +823,29 @@ def close_epic(eng, push_to_jira):
         r = requests.post(url=req_url, auth=HTTPBasicAuth(jira_conf.username, jira_conf.password), json=json_data)
 
 
-def make_trello_board(tconf,boardName):
+def push_finding_to_trello():
+    temp = 'temp'
 
+
+def update_trello_issue(new_finding, tconf):
+    #trello init
     API_KEY = tconf.api_key
     TOKEN = tconf.token
     trello = TrelloApi(API_KEY)
     trello.set_token(TOKEN)
 
+    boardName = 'scan'
+
+    #make trello board
     trello_board = trello.boards.new(boardName)
     board_id = trello_board.get('id')
     board_name = trello_board.get('name')
     board_url = trello_board.get('url')
     board_shortUrl = trello_board.get('shortUrl')
-    
+
     #save to db
     new_trello_board = TRELLO_board(trello_board_id=board_id,trello_board_name=board_name,shortUrl=board_url,url = board_shortUrl)
     new_trello_board.save()
-
-
-def update_trello_issue(new_finding, tconf):
-    #make call to trello to push the content
-    boardName = 'scan'
-    make_trello_board(tconf, boardName)
-    #prod = Product.objects.get(engagement=Engagement.objects.get(test=find.test))
-    #jpkey = JIRA_PKey.objects.get(product=prod)
-    #jira_conf = jpkey.conf
 
 def close_epic(eng, push_to_jira):
     engagement = eng

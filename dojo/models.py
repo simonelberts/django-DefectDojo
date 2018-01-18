@@ -1091,8 +1091,15 @@ class TRELLO_board(models.Model):
     shortUrl = models.CharField(max_length=200, default=None)
     url = models.CharField(max_length=200, default=None)
 
+
+class TRELLO_items(models.Model):
+    trello_board_id = models.CharField(max_length=200)
+    finding_id =  models.CharField(max_length=200)
+
+
 class TRELLO_card(models.Model):
     trello_card_name = models.CharField(max_length=200)
+
 
 NOTIFICATION_CHOICES=(("slack","slack"),("hipchat","hipchat"),("mail","mail"),("alert","alert"))
 class Notifications(models.Model):
