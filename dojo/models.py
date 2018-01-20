@@ -1109,7 +1109,7 @@ class TRELLO_list(models.Model):
 
 
 class TRELLO_card(models.Model):
-    backlog_list_id = models.CharField(max_length=200, default=None)
+    list_id = models.CharField(max_length=200, default=None)
     card_name = models.CharField(max_length=200)
     description = models.CharField(max_length=200, default=None)
     label_id = models.CharField(max_length=200, default=None)
@@ -1119,6 +1119,7 @@ class TRELLO_label(models.Model):
     board_id = models.CharField(max_length=200, default=None)
     label_id = models.CharField(max_length=200, default=None)
     label_name = models.CharField(max_length=200, default=None)
+    label_color = models.CharField(max_length=200, default=None)
 
 
 NOTIFICATION_CHOICES=(("slack","slack"),("hipchat","hipchat"),("mail","mail"),("alert","alert"))

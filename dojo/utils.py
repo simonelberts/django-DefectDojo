@@ -25,7 +25,7 @@ from jira import JIRA
 from jira.exceptions import JIRAError
 from dojo.models import Finding, Scan, Test, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
-                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_list, TRELLO_Issue, \
+                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_list, TRELLO_label, TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
 from django_slack import slack_message
 # from dojo.trello_default import trello_default
@@ -886,6 +886,25 @@ def create_default_lists(boardId, HEADERS,PARAMS,URL_BASE):
 #    return names_dict
 
 
+def create_default_labels(boardId, HEADERS,PARAMS,URL_BASE):
+
+    url = URL_BASE + "labels"
+    labels = ('Critical', 'High', 'Medium', 'Low', 'Informational')
+    colors = ('red', 'orange', 'yellow', 'blue', 'green')
+    label_dict = {}
+
+    for i in range(0, 4):
+        params = params_builder({'name': labels[i], 'color': colors[i], 'idBoard': boardId}, PARAMS)
+        tmp_label_data = request_helper(url, params, HEADERS)
+
+        #save labels to db
+        new_trello_label = TRELLO_label(label_name = labels[i], label_color = colors[i], label_id = tmp_label_data['id'], board_id=boardId)
+        new_trello_label.save()
+
+        label_dict.update({labels[i]: tmp_label_data['id']})
+    return label_dict
+
+
 def update_trello_issue(new_finding, tconf):
     #trello init
     API_KEY = tconf.api_key
@@ -918,6 +937,8 @@ def update_trello_issue(new_finding, tconf):
         new_trello_board.save()
         #make the default lists
         trello_lists = create_default_lists(board_id, HEADERS,PARAMS,URL_BASE)
+        #make the default labels
+        trello_default_labels = create_default_labels(board_id, HEADERS,PARAMS,URL_BASE)
         #push finding to newly created board
     else:
         #boardName = 'scan'
