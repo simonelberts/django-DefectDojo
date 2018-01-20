@@ -1,6 +1,7 @@
 import calendar as tcalendar
 import re
 import binascii, os, hashlib
+import json
 from Crypto.Cipher import AES
 from calendar import monthrange
 from datetime import date, datetime, timedelta
@@ -9,6 +10,7 @@ from trello import TrelloApi
 
 import vobject
 import requests
+from collections import OrderedDict
 from dateutil.relativedelta import relativedelta, MO
 from django.conf import settings
 from django.core.mail import send_mail
@@ -23,7 +25,7 @@ from jira import JIRA
 from jira.exceptions import JIRAError
 from dojo.models import Finding, Scan, Test, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
-                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_Issue, \
+                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_list, TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
 from django_slack import slack_message
 # from dojo.trello_default import trello_default
@@ -827,35 +829,116 @@ def push_finding_to_trello():
     temp = 'temp'
 
 
+# Helper methods
+def request_helper(url, params, HEADERS):
+    response = requests.request(method="POST", url=url, data=json.dumps(params), headers=HEADERS)
+    return response.json()
+
+def params_builder(dictionary, PARAMS):
+    tmp_params = PARAMS
+    tmp_params.update(dictionary)
+    return tmp_params
+
+
+def create_default_board(HEADERS,PARAMS,URL_BASE):
+
+    url = URL_BASE + "boards/"
+    params = params_builder({'name': 'DefectDojo findings',
+                             'defaultLists': 'false',
+                             'desc': 'This is an automatically generated board from DefectDojo. ' +
+                             'This board contains all vulnerabilities, which are published through DefectDojo.'}, PARAMS)
+    board_data = request_helper(url, params, HEADERS)
+
+    return board_data
+
+
+# Create the underlying lists
+def create_default_lists(boardId, HEADERS,PARAMS,URL_BASE):
+
+    url = URL_BASE + "lists"
+    names_dict = OrderedDict((('Back Log', ''), ('To Do', ''), ('In Progress', ''), ('Done', '')))
+
+    for name in names_dict:
+        params = params_builder({'name': name, 'idBoard': boardId, 'pos': 'bottom'}, PARAMS)
+        tmp_list_data = request_helper(url, params, HEADERS)
+
+        #save new list to db
+        new_trello_list = TRELLO_list(list_name = name, list_id = tmp_list_data['id'], board_id=boardId)
+        new_trello_list.save()
+
+        names_dict[name] = tmp_list_data['id']
+
+    return names_dict
+
+
+# Create the configurated lists
+#def create_conf_lists(board_id, conf, HEADERS,PARAMS,URL_BASE):
+
+#    url = URL_BASE + "lists"
+#    names_dict = OrderedDict((('Back Log', ''), ('To Do', ''), ('In Progress', ''), ('Done', '')))
+
+#    for name in names_dict:
+#        params = params_builder({'name': name, 'idBoard': board_id, 'pos': 'bottom'}, PARAMS)
+#        tmp_list_data = request_helper(url, params, HEADERS)
+#        names_dict[name] = tmp_list_data['id']
+#        new_trello_list = TRELLO_list()
+
+#    return names_dict
+
+
 def update_trello_issue(new_finding, tconf):
     #trello init
     API_KEY = tconf.api_key
     TOKEN = tconf.token
+    HEADERS = {'content-type': 'application/json'}
+    PARAMS = {'key': API_KEY, 'token': TOKEN}
+    URL_BASE = "https://api.trello.com/1/"
     trello = TrelloApi(API_KEY)
     trello.set_token(TOKEN)
     boardName = 'scan'
 
     try:
-        trello_item = TRELLO_items.objects.get(finding_id = new_finding.id)
+        trello_item = TRELLO_items.objects.get(test_id = new_finding.test_id)
     except:
+        #the boardname will contain the testname 
         boardName = 'not defined'
         #make new trello board
-        trello_board = trello.boards.new(boardName)
+        #trello_board = trello.boards.new(boardName) // old board creation
+        trello_board = create_default_board(HEADERS,PARAMS,URL_BASE)
         #define trello attributes
         board_id = trello_board.get('id')
         board_name = trello_board.get('name')
         board_url = trello_board.get('url')
         board_shortUrl = trello_board.get('shortUrl')
         #save new trello item
-        new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=board_id)
+        new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=board_id,test_id=new_finding.test_id)
         new_trello_item.save()
         #save new board to db
         new_trello_board = TRELLO_board(trello_board_id=board_id,trello_board_name=board_name,shortUrl=board_url,url = board_shortUrl)
         new_trello_board.save()
-        
+        #make the default lists
+        trello_lists = create_default_lists(board_id, HEADERS,PARAMS,URL_BASE)
+        #push finding to newly created board
     else:
-        boardName = 'defined'
-        trello_board = trello.boards.new(boardName)
+        #boardName = 'scan'
+        #trello_board = trello.boards.new(boardName)
+        try:
+            trello_finding = TRELLO_items.objects.get(finding_id = new_finding.id)
+        except:
+            #push new finding to trello
+            trello_board = trello.boards.new('new finding')
+            #get boardID
+            #get listID
+            #push new finding to trello
+        else:
+            #update finding in trello
+            trello_board = trello.boards.new('update finding')
+            #get boardID
+            #get listID
+            #get cardID
+            #update finding
+        #test = Test.objects.get(id=test_id)
+        #trello.boards.get(trello_item.trello_board_id)
 
 
 def close_epic(eng, push_to_jira):

@@ -1031,7 +1031,7 @@ class JIRA_Conf(models.Model):
             return 'N/A'
 
 class TRELLO_Conf(models.Model):
-    api_key = models.CharField(max_length=600, null=True, blank=True, verbose_name="API Key")
+    api_key = models.CharField(max_length=200, null=True, blank=True, verbose_name="API Key")
     description = models.CharField(max_length=2000, null=True, blank=True, verbose_name="Description")
     token = models.CharField(max_length=2000, null=True, blank=True, verbose_name="token")
 
@@ -1085,6 +1085,16 @@ class TRELLO_PKey(models.Model):
 #   enable_engagement_epic_mapping = models.BooleanField(default=False, blank=True)
     push_notes = models.BooleanField(default=False, blank=True)
 
+
+class TRELLO_items(models.Model):
+    trello_board_id = models.CharField(max_length=200)
+    finding_id = models.CharField(max_length=200)
+    test_id = models.CharField(max_length=200, default=None)
+
+class TRELLO_conf_list(models.Model):
+    trello_conf = models.ForeignKey(TRELLO_Conf, verbose_name="TRELLO Configuration", null=True, blank=True)
+    list_name = models.CharField(max_length=200, default=None)
+
 class TRELLO_board(models.Model):
     trello_board_id =  models.CharField(max_length=200)
     trello_board_name = models.CharField(max_length=200)
@@ -1092,13 +1102,23 @@ class TRELLO_board(models.Model):
     url = models.CharField(max_length=200, default=None)
 
 
-class TRELLO_items(models.Model):
-    trello_board_id = models.CharField(max_length=200)
-    finding_id =  models.CharField(max_length=200)
+class TRELLO_list(models.Model):
+    board_id = models.CharField(max_length=200, default=None)
+    list_id = models.CharField(max_length=200, default=None)
+    list_name = models.CharField(max_length=200, default=None)
 
 
 class TRELLO_card(models.Model):
-    trello_card_name = models.CharField(max_length=200)
+    backlog_list_id = models.CharField(max_length=200, default=None)
+    card_name = models.CharField(max_length=200)
+    description = models.CharField(max_length=200, default=None)
+    label_id = models.CharField(max_length=200, default=None)
+
+
+class TRELLO_label(models.Model):
+    board_id = models.CharField(max_length=200, default=None)
+    label_id = models.CharField(max_length=200, default=None)
+    label_name = models.CharField(max_length=200, default=None)
 
 
 NOTIFICATION_CHOICES=(("slack","slack"),("hipchat","hipchat"),("mail","mail"),("alert","alert"))
