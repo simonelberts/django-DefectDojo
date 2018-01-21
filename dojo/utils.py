@@ -955,16 +955,24 @@ def update_trello_issue(new_finding, tconf):
                         new_finding.description,
                         trello_default_labels['Critical'],HEADERS,PARAMS,URL_BASE)
     else:
-        #boardName = 'scan'
-        #trello_board = trello.boards.new(boardName)
         try:
             trello_finding = TRELLO_items.objects.get(finding_id = new_finding.id)
         except:
             #push new finding to trello
-            trello_board = trello.boards.new('new finding')
+            #trello_board = trello.boards.new('new finding')
             #get boardID
+            trello_boardId = trello_item.trello_board_id
             #get listID
+            trello_list = TRELLO_list.objects.get(board_id=trello_boardId,list_name='Back Log')
+            #get label
+            trello_label = TRELLO_label.objects.get(board_id=trello_boardId,label_name=new_finding.severity)
+            #trello_list = TRELLO_list.objects.get(id=45)
             #push new finding to trello
+            trello_card = new_trello_card(
+                        trello_list.list_id,
+                        new_finding.title,
+                        new_finding.description,
+                        trello_label.label_id,HEADERS,PARAMS,URL_BASE)
         else:
             #update finding in trello
             trello_board = trello.boards.new('update finding')
