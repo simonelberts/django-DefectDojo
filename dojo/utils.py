@@ -846,18 +846,28 @@ def params_builder(dictionary, PARAMS):
     return tmp_params
 
 
-def description_builder(**kwargs):
+def description_builder(description, vuln_endpoint, mitigation, impact, references, notes):
     # kwargs need to have the same name corresponding with the arguments array below.
-    arguments = ['description', 'vuln_endpoint', 'mitigation', 'impact', 'references', 'notes']
-    headlines = ['Description', 'Vulnerable Endpoints', 'Mitigation', 'Impact', 'References', 'Notes']
+    # arguments = ['description', 'vuln_endpoint', 'mitigation', 'impact', 'references', 'notes']
+    # headlines = ['Description', 'Vulnerable Endpoints', 'Mitigation', 'Impact', 'References', 'Notes']
 
-    description = ""
-    for i in range(0, len(headlines)):
-        description += '***' + headlines[i] + '***\n'
-        if kwargs.get(arguments[i]) is not None:
-            description += kwargs.get(arguments[i]) + '\n\n'
+    desc = ""
+    desc += '***Description***\n'
+    desc += description + '\n\n'
+    desc += '***Vulnerable Endpoints***\n'
+    desc += str(vuln_endpoint) + '\n\n'
+    desc += '***Mitigation***\n'
+    desc += mitigation + '\n\n'
+    desc += '***Description***\n'
+    desc += description + '\n\n'
+    desc += '***Impact***\n'
+    desc += impact + '\n\n'
+    desc += '***References***\n'
+    desc += references + '\n\n'
+    desc += '***Notes***\n'
+    desc += str(notes) + '\n\n'
 
-    return description
+    return desc
 
 
 def create_default_board(HEADERS,PARAMS,URL_BASE,new_finding):
@@ -940,7 +950,7 @@ def new_trello_card(list_id, name, desc, label_id, HEADERS,PARAMS,URL_BASE):
 
 def update_trello_card(card_id, name, desc, label_id, std_headers, std_params, url_base):
 
-    url = url_base + "cards" + card_id
+    url = url_base + "cards" + str(card_id)
     params = params_builder({'name': name, 'desc': desc, 'idLabels': label_id}, std_params)
 
     put_card = request_helper(url, params, std_headers, is_put_request=True)
@@ -973,12 +983,14 @@ def update_trello_issue(new_finding, tconf):
             #get listID
             trello_listId = TRELLO_list.objects.get(board_id=trello_boardId, list_name='Back Log')
             trello_cardId = TRELLO_card.objects.filter(list_id = trello_listId)
-            trello_label = TRELLO_label.objects.get(board_id=trello_boardId, list_name='Back Log')
+            trello_label = TRELLO_label.objects.get(board_id=trello_boardId, label_name=new_finding.severity)
             new_card_description = description_builder(description=new_finding.description,
+                                                       vuln_endpoint=new_finding.endpoints,
                                                        mitigation=new_finding.mitigation,
                                                        impact=new_finding.impact,
                                                        references=new_finding.references,
                                                        notes=new_finding.notes)
+                                                 # description, vuln_endpoint, mitigation, impact, references, notes
             updated_trello_card = update_trello_card(card_id=trello_cardId,
                                                      name=new_finding.title,
                                                      desc=new_card_description,
