@@ -830,9 +830,13 @@ def push_finding_to_trello():
 
 
 # Helper methods
-def request_helper(url, params, HEADERS):
-    response = requests.request(method="POST", url=url, data=json.dumps(params), headers=HEADERS)
-    return response.json()
+def request_helper(url, params, HEADERS, is_put_request):
+    if is_put_request:
+        response = requests.request(method="PUT", url=url, params=params, headers=HEADERS)
+        return response
+    else:
+        response = requests.request(method="POST", url=url, data=json.dumps(params), headers=HEADERS)
+        return response.json()
 
 def params_builder(dictionary, PARAMS):
     tmp_params = PARAMS
@@ -912,6 +916,16 @@ def new_trello_card(list_id, name, desc, label_id, HEADERS,PARAMS,URL_BASE):
     card_data = request_helper(url, params, HEADERS)
 
     return card_data['id']
+
+
+def update_trello_card(card_id, name, desc, closed, label_id, std_headers, std_params, url_base):
+
+    url = url_base + "cards" + card_id
+    params = params_builder({'name': name, 'desc': desc, 'closed': closed, 'idLabels': label_id}, std_params)
+
+    put_card = request_helper(url, params, std_headers, is_put_request=True)
+
+    return put_card
 
 
 def update_trello_issue(new_finding, tconf):
