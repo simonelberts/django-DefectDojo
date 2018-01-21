@@ -2,6 +2,8 @@ import calendar as tcalendar
 import re
 import binascii, os, hashlib
 import json
+from os import name
+
 from Crypto.Cipher import AES
 from calendar import monthrange
 from datetime import date, datetime, timedelta
@@ -25,7 +27,7 @@ from jira import JIRA
 from jira.exceptions import JIRAError
 from dojo.models import Finding, Scan, Test, Test_Type, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
-                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_list, TRELLO_label, TRELLO_Issue, \
+                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_list, TRELLO_card, TRELLO_label, TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
 from django_slack import slack_message
 # from dojo.trello_default import trello_default
@@ -964,9 +966,26 @@ def update_trello_issue(new_finding, tconf):
         trello_finding = TRELLO_items.objects.filter(finding_id = new_finding.id).exists()
         if trello_finding:
             #update finding in trello
-            trello_board = trello.boards.new('update')
+            #trello_board = trello.boards.new('update')
             #get boardID
+            trello_obj= TRELLO_items.objects.filter(test_id=new_finding.test_id).first()
+            trello_boardId = trello_obj.trello_board_id
             #get listID
+            trello_listId = TRELLO_list.objects.get(board_id=trello_boardId, list_name='Back Log')
+            trello_cardId = TRELLO_card.objects.filter(list_id = trello_listId)
+            trello_label = TRELLO_label.objects.get(board_id=trello_boardId, list_name='Back Log')
+            new_card_description = description_builder(description=new_finding.description,
+                                                       mitigation=new_finding.mitigation,
+                                                       impact=new_finding.impact,
+                                                       references=new_finding.references,
+                                                       notes=new_finding.notes)
+            updated_trello_card = update_trello_card(card_id=trello_cardId,
+                                                     name=new_finding.title,
+                                                     desc=new_card_description,
+                                                     label_id=trello_label.label_id,
+                                                     std_headers=HEADERS,
+                                                     std_params=PARAMS,
+                                                     url_base=URL_BASE)
             #get cardID
             #update finding
         else:
@@ -988,6 +1007,8 @@ def update_trello_issue(new_finding, tconf):
             #save card to db save new trello item
             new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id)
             new_trello_item.save()
+            add_trello_card = TRELLO_card(card_id=trello_card, list_id=trello_list.list_id)
+            add_trello_card.save()
     else:
         #condition returns false, item does not exist and a new board has to be created
         #make new trello board
@@ -1014,6 +1035,8 @@ def update_trello_issue(new_finding, tconf):
                         new_finding.title,
                         new_finding.description,
                         trello_default_labels['Critical'],HEADERS,PARAMS,URL_BASE)
+        add_trello_card = TRELLO_card(card_id=trello_card, list_id=trello_lists['Back Log'])
+        add_trello_card.save()
 
 
 def close_epic(eng, push_to_jira):
