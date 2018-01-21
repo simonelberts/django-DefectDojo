@@ -897,7 +897,7 @@ def create_default_labels(boardId, HEADERS,PARAMS,URL_BASE):
     colors = ('red', 'orange', 'yellow', 'blue', 'green')
     label_dict = {}
 
-    for i in range(0, 4):
+    for i in range(0, len(labels)):
         params = params_builder({'name': labels[i], 'color': colors[i], 'idBoard': boardId}, PARAMS)
         tmp_label_data = request_helper(url, params, HEADERS)
 
