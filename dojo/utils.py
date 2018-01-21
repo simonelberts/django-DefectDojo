@@ -957,9 +957,39 @@ def update_trello_issue(new_finding, tconf):
     trello.set_token(TOKEN)
     boardName = 'scan'
 
-    try:
-        trello_item = TRELLO_items.objects.filter(test_id = new_finding.test_id).exists()
-    except:
+    trello_item = TRELLO_items.objects.filter(test_id = new_finding.test_id).exists()
+
+    if trello_item:
+        #condition returns true, item exists
+        trello_finding = TRELLO_items.objects.filter(finding_id = new_finding.id).exists()
+        if trello_finding:
+            #update finding in trello
+            trello_board = trello.boards.new('update')
+            #get boardID
+            #get listID
+            #get cardID
+            #update finding
+        else:
+            #push new finding to trello
+            #trello_board = trello.boards.new('new finding')
+            #get boardID
+            trello_item = TRELLO_items.objects.filter(test_id = new_finding.test_id).first()
+            trello_boardId = trello_item.trello_board_id
+            #get listID
+            trello_list = TRELLO_list.objects.get(board_id=trello_boardId,list_name='Back Log')
+            #get label
+            trello_label = TRELLO_label.objects.get(board_id=trello_boardId,label_name=new_finding.severity)
+            #push new finding to trello
+            trello_card = new_trello_card(
+                        trello_list.list_id,
+                        new_finding.title,
+                        new_finding.description,
+                        trello_label.label_id,HEADERS,PARAMS,URL_BASE)
+            #save card to db save new trello item
+            new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id)
+            new_trello_item.save()
+    else:
+        #condition returns false, item does not exist and a new board has to be created
         #make new trello board
         #trello_board = trello.boards.new(boardName) // old board creation
         trello_board = create_default_board(HEADERS,PARAMS,URL_BASE,new_finding)
@@ -984,37 +1014,6 @@ def update_trello_issue(new_finding, tconf):
                         new_finding.title,
                         new_finding.description,
                         trello_default_labels['Critical'],HEADERS,PARAMS,URL_BASE)
-    else:
-        try:
-            trello_finding = TRELLO_items.objects.get(finding_id = new_finding.id)
-        except:
-            #push new finding to trello
-            #trello_board = trello.boards.new('new finding')
-            #get boardID
-            trello_boardId = trello_item.trello_board_id
-            #get listID
-            trello_list = TRELLO_list.objects.get(board_id=trello_boardId,list_name='Back Log')
-            #get label
-            trello_label = TRELLO_label.objects.get(board_id=trello_boardId,label_name=new_finding.severity)
-            #trello_list = TRELLO_list.objects.get(id=45)
-            #push new finding to trello
-            trello_card = new_trello_card(
-                        trello_list.list_id,
-                        new_finding.title,
-                        new_finding.description,
-                        trello_label.label_id,HEADERS,PARAMS,URL_BASE)
-            #save card to db save new trello item
-            new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id)
-            new_trello_item.save()
-        else:
-            #update finding in trello
-            trello_board = trello.boards.new('update')
-            #get boardID
-            #get listID
-            #get cardID
-            #update finding
-        #test = Test.objects.get(id=test_id)
-        #trello.boards.get(trello_item.trello_board_id)
 
 
 def close_epic(eng, push_to_jira):
