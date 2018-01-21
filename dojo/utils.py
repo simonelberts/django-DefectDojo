@@ -905,6 +905,15 @@ def create_default_labels(boardId, HEADERS,PARAMS,URL_BASE):
     return label_dict
 
 
+def new_trello_card(list_id, name, desc, label_id, HEADERS,PARAMS,URL_BASE):
+
+    url = URL_BASE + "cards"
+    params = params_builder({'name': name, 'desc': desc, 'idList': list_id, 'idLabels': label_id}, PARAMS)
+    card_data = request_helper(url, params, HEADERS)
+
+    return card_data['id']
+
+
 def update_trello_issue(new_finding, tconf):
     #trello init
     API_KEY = tconf.api_key
@@ -940,6 +949,11 @@ def update_trello_issue(new_finding, tconf):
         #make the default labels
         trello_default_labels = create_default_labels(board_id, HEADERS,PARAMS,URL_BASE)
         #push finding to newly created board
+        trello_card = new_trello_card(
+                        trello_lists['Back Log'],
+                        new_finding.title,
+                        new_finding.description,
+                        trello_default_labels['Critical'],HEADERS,PARAMS,URL_BASE)
     else:
         #boardName = 'scan'
         #trello_board = trello.boards.new(boardName)
