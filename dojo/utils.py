@@ -844,6 +844,20 @@ def params_builder(dictionary, PARAMS):
     return tmp_params
 
 
+def description_builder(**kwargs):
+    # kwargs need to have the same name corresponding with the arguments array below.
+    arguments = ['description', 'vuln_endpoint', 'mitigation', 'impact', 'references', 'notes']
+    headlines = ['Description', 'Vulnerable Endpoints', 'Mitigation', 'Impact', 'References', 'Notes']
+
+    description = ""
+    for i in range(0, len(headlines)):
+        description += '***' + headlines[i] + '***\n'
+        if kwargs.get(arguments[i]) is not None:
+            description += kwargs.get(arguments[i]) + '\n\n'
+
+    return description
+
+
 def create_default_board(HEADERS,PARAMS,URL_BASE,new_finding):
 
     test = Test.objects.get(id=new_finding.test_id)
@@ -922,10 +936,10 @@ def new_trello_card(list_id, name, desc, label_id, HEADERS,PARAMS,URL_BASE):
     return card_data['id']
 
 
-def update_trello_card(card_id, name, desc, closed, label_id, std_headers, std_params, url_base):
+def update_trello_card(card_id, name, desc, label_id, std_headers, std_params, url_base):
 
     url = url_base + "cards" + card_id
-    params = params_builder({'name': name, 'desc': desc, 'closed': closed, 'idLabels': label_id}, std_params)
+    params = params_builder({'name': name, 'desc': desc, 'idLabels': label_id}, std_params)
 
     put_card = request_helper(url, params, std_headers, is_put_request=True)
 
