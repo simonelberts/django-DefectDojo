@@ -23,7 +23,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from jira import JIRA
 from jira.exceptions import JIRAError
-from dojo.models import Finding, Scan, Test, Engagement, Stub_Finding, Finding_Template, \
+from dojo.models import Finding, Scan, Test, Test_Type, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
                         TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_list, TRELLO_label, TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
@@ -840,10 +840,14 @@ def params_builder(dictionary, PARAMS):
     return tmp_params
 
 
-def create_default_board(HEADERS,PARAMS,URL_BASE):
+def create_default_board(HEADERS,PARAMS,URL_BASE,new_finding):
+
+    test = Test.objects.get(id=new_finding.test_id)
+
+    testType = Test_Type.objects.get(id = test.test_type_id)
 
     url = URL_BASE + "boards/"
-    params = params_builder({'name': 'DefectDojo findings',
+    params = params_builder({'name': 'DefectDojo - ' + testType.name,
                              'defaultLists': 'false',
                              'desc': 'This is an automatically generated board from DefectDojo. ' +
                              'This board contains all vulnerabilities, which are published through DefectDojo.'}, PARAMS)
@@ -926,13 +930,11 @@ def update_trello_issue(new_finding, tconf):
     boardName = 'scan'
 
     try:
-        trello_item = TRELLO_items.objects.get(test_id = new_finding.test_id)
+        trello_item = TRELLO_items.objects.filter(test_id = new_finding.test_id).exists()
     except:
-        #the boardname will contain the testname 
-        boardName = 'not defined'
         #make new trello board
         #trello_board = trello.boards.new(boardName) // old board creation
-        trello_board = create_default_board(HEADERS,PARAMS,URL_BASE)
+        trello_board = create_default_board(HEADERS,PARAMS,URL_BASE,new_finding)
         #define trello attributes
         board_id = trello_board.get('id')
         board_name = trello_board.get('name')
@@ -973,9 +975,12 @@ def update_trello_issue(new_finding, tconf):
                         new_finding.title,
                         new_finding.description,
                         trello_label.label_id,HEADERS,PARAMS,URL_BASE)
+            #save card to db save new trello item
+            new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id)
+            new_trello_item.save()
         else:
             #update finding in trello
-            trello_board = trello.boards.new('update finding')
+            trello_board = trello.boards.new('update')
             #get boardID
             #get listID
             #get cardID
