@@ -832,9 +832,9 @@ def push_finding_to_trello():
 
 
 # Helper methods
-def request_helper(url, params, HEADERS, is_put_request):
-    if is_put_request:
-        response = requests.request(method="PUT", url=url, params=params, headers=HEADERS)
+def request_helper(url, params, HEADERS, requestMethod,):
+    if requestMethod == "PUT":
+        response = requests.request(method=requestMethod, url=url, params=params, headers=HEADERS)
         return response
     else:
         response = requests.request(method="POST", url=url, data=json.dumps(params), headers=HEADERS)
@@ -881,7 +881,7 @@ def create_default_board(HEADERS,PARAMS,URL_BASE,new_finding):
                              'defaultLists': 'false',
                              'desc': 'This is an automatically generated board from DefectDojo. ' +
                              'This board contains all vulnerabilities, which are published through DefectDojo.'}, PARAMS)
-    board_data = request_helper(url, params, HEADERS)
+    board_data = request_helper(url, params, HEADERS, requestMethod="POST")
 
     return board_data
 
@@ -894,7 +894,7 @@ def create_default_lists(boardId, HEADERS,PARAMS,URL_BASE):
 
     for name in names_dict:
         params = params_builder({'name': name, 'idBoard': boardId, 'pos': 'bottom'}, PARAMS)
-        tmp_list_data = request_helper(url, params, HEADERS)
+        tmp_list_data = request_helper(url, params, HEADERS, requestMethod="POST")
 
         #save new list to db
         new_trello_list = TRELLO_list(list_name = name, list_id = tmp_list_data['id'], board_id=boardId)
@@ -929,7 +929,7 @@ def create_default_labels(boardId, HEADERS,PARAMS,URL_BASE):
 
     for i in range(0, len(labels)):
         params = params_builder({'name': labels[i], 'color': colors[i], 'idBoard': boardId}, PARAMS)
-        tmp_label_data = request_helper(url, params, HEADERS)
+        tmp_label_data = request_helper(url, params, HEADERS, requestMethod="POST")
 
         #save labels to db
         new_trello_label = TRELLO_label(label_name = labels[i], label_color = colors[i], label_id = tmp_label_data['id'], board_id=boardId)
@@ -943,7 +943,7 @@ def new_trello_card(list_id, name, desc, label_id, HEADERS,PARAMS,URL_BASE):
 
     url = URL_BASE + "cards"
     params = params_builder({'name': name, 'desc': desc, 'idList': list_id, 'idLabels': label_id}, PARAMS)
-    card_data = request_helper(url, params, HEADERS)
+    card_data = request_helper(url, params, HEADERS, requestMethod="POST")
 
     return card_data['id']
 
@@ -953,7 +953,7 @@ def update_trello_card(card_id, name, desc, label_id, std_headers, std_params, u
     url = url_base + "cards" + str(card_id)
     params = params_builder({'name': name, 'desc': desc, 'idLabels': label_id}, std_params)
 
-    put_card = request_helper(url, params, std_headers, is_put_request=True)
+    put_card = request_helper(url, params, std_headers, requestMethod="PUT")
 
     return put_card
 
@@ -969,10 +969,11 @@ def update_trello_issue(new_finding, tconf):
     trello.set_token(TOKEN)
     boardName = 'scan'
 
+    #check if testboard exists if true push to existing board else make new board and push
     trello_item = TRELLO_items.objects.filter(test_id = new_finding.test_id).exists()
 
     if trello_item:
-        #condition returns true, item exists
+        #condition returns true, finding exists
         trello_finding = TRELLO_items.objects.filter(finding_id = new_finding.id).exists()
         if trello_finding:
             #update finding in trello
@@ -1019,7 +1020,7 @@ def update_trello_issue(new_finding, tconf):
             #save card to db save new trello item
             new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id)
             new_trello_item.save()
-            add_trello_card = TRELLO_card(card_id=trello_card, list_id=trello_list.list_id)
+            add_trello_card = TRELLO_card(card_name=new_finding.title, list_id=trello_list.list_id, description=new_finding.description, label_id=trello_label.label_id, card_id=trello_card)
             add_trello_card.save()
     else:
         #condition returns false, item does not exist and a new board has to be created
@@ -1047,7 +1048,7 @@ def update_trello_issue(new_finding, tconf):
                         new_finding.title,
                         new_finding.description,
                         trello_default_labels['Critical'],HEADERS,PARAMS,URL_BASE)
-        add_trello_card = TRELLO_card(card_id=trello_card, list_id=trello_lists['Back Log'])
+        add_trello_card = TRELLO_card(card_name=new_finding.title, list_id=trello_lists['Back Log'], description=new_finding.description, card_id=trello_card)
         add_trello_card.save()
 
 

@@ -1112,8 +1112,8 @@ class TRELLO_card(models.Model):
     card_id = models.CharField(max_length=200, default=None)
     list_id = models.CharField(max_length=200, default=None)
     card_name = models.CharField(max_length=200)
-    description = models.CharField(max_length=200, default=None)
-    label_id = models.CharField(max_length=200, default=None)
+    description = models.CharField(max_length=10000, default=None, null=True, blank=True)
+    label_id = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 
 class TRELLO_label(models.Model):
