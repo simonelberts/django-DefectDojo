@@ -948,13 +948,13 @@ def new_trello_card(list_id, name, desc, label_id, HEADERS,PARAMS,URL_BASE):
     return card_data['id']
 
 
-def update_trello_card(card_id, name, desc, label_id, std_headers, std_params, url_base):
+def update_trello_card(card_id, name, desc, label_id, std_headers, std_params, url_base,trello):
 
-    url = url_base + "cards" + str(card_id)
+    url = url_base + "cards/" + str(card_id)
     params = params_builder({'name': name, 'desc': desc, 'idLabels': label_id}, std_params)
 
     put_card = request_helper(url, params, std_headers, requestMethod="PUT")
-
+    #trello_board = trello.boards.new(put_card)
     return put_card
 
 
@@ -974,8 +974,8 @@ def update_trello_issue(new_finding, tconf):
 
     if trello_item:
         #condition returns true, finding exists
-        trello_finding = TRELLO_items.objects.filter(finding_id = new_finding.id).exists()
-        if trello_finding:
+        trello_finding = TRELLO_items.objects.filter(finding_id = new_finding.id)
+        if trello_finding.exists():
             #update finding in trello
             #trello_board = trello.boards.new('update')
             #get boardID
@@ -983,7 +983,8 @@ def update_trello_issue(new_finding, tconf):
             trello_boardId = trello_obj.trello_board_id
             #get listID
             trello_listId = TRELLO_list.objects.get(board_id=trello_boardId, list_name='Back Log')
-            trello_cardId = TRELLO_card.objects.filter(list_id = trello_listId)
+            #get cardID
+            trello_card_id = trello_finding.get(finding_id = new_finding.id);
             trello_label = TRELLO_label.objects.get(board_id=trello_boardId, label_name=new_finding.severity)
             new_card_description = description_builder(description=new_finding.description,
                                                        vuln_endpoint=new_finding.endpoints,
@@ -992,15 +993,16 @@ def update_trello_issue(new_finding, tconf):
                                                        references=new_finding.references,
                                                        notes=new_finding.notes)
                                                  # description, vuln_endpoint, mitigation, impact, references, notes
-            updated_trello_card = update_trello_card(card_id=trello_cardId,
+            updated_trello_card = update_trello_card(card_id=trello_card_id.card_id,
                                                      name=new_finding.title,
                                                      desc=new_card_description,
                                                      label_id=trello_label.label_id,
                                                      std_headers=HEADERS,
                                                      std_params=PARAMS,
-                                                     url_base=URL_BASE)
-            #get cardID
-            #update finding
+                                                     url_base=URL_BASE,
+                                                     trello=trello)
+            #trello_board = trello.boards.new('test2')
+            #trello_board = trello.boards.new(URL_BASE)
         else:
             #push new finding to trello
             #trello_board = trello.boards.new('new finding')
@@ -1018,7 +1020,7 @@ def update_trello_issue(new_finding, tconf):
                         new_finding.description,
                         trello_label.label_id,HEADERS,PARAMS,URL_BASE)
             #save card to db save new trello item
-            new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id)
+            new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id,card_id=trello_card)
             new_trello_item.save()
             add_trello_card = TRELLO_card(card_name=new_finding.title, list_id=trello_list.list_id, description=new_finding.description, label_id=trello_label.label_id, card_id=trello_card)
             add_trello_card.save()
@@ -1032,9 +1034,6 @@ def update_trello_issue(new_finding, tconf):
         board_name = trello_board.get('name')
         board_url = trello_board.get('url')
         board_shortUrl = trello_board.get('shortUrl')
-        #save new trello item
-        new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=board_id,test_id=new_finding.test_id)
-        new_trello_item.save()
         #save new board to db
         new_trello_board = TRELLO_board(trello_board_id=board_id,trello_board_name=board_name,shortUrl=board_url,url = board_shortUrl)
         new_trello_board.save()
@@ -1048,6 +1047,9 @@ def update_trello_issue(new_finding, tconf):
                         new_finding.title,
                         new_finding.description,
                         trello_default_labels['Critical'],HEADERS,PARAMS,URL_BASE)
+        #save new trello item
+        new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=board_id,test_id=new_finding.test_id,card_id=trello_card)
+        new_trello_item.save()
         add_trello_card = TRELLO_card(card_name=new_finding.title, list_id=trello_lists['Back Log'], description=new_finding.description, card_id=trello_card)
         add_trello_card.save()
 

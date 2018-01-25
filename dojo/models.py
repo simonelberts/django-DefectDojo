@@ -1089,7 +1089,9 @@ class TRELLO_PKey(models.Model):
 class TRELLO_items(models.Model):
     trello_board_id = models.CharField(max_length=200)
     finding_id = models.CharField(max_length=200)
+    card_id = models.CharField(max_length=200, default=None)
     test_id = models.CharField(max_length=200, default=None)
+    
 
 class TRELLO_conf_list(models.Model):
     trello_conf = models.ForeignKey(TRELLO_Conf, verbose_name="TRELLO Configuration", null=True, blank=True)

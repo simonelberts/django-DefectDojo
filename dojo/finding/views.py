@@ -373,7 +373,6 @@ def delete_finding(request, fid):
 
 @user_passes_test(lambda u: u.is_staff)
 def edit_finding(request, fid):
-    aaa = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
     finding = get_object_or_404(Finding, id=fid)
     old_status = finding.status()
     form = FindingForm(instance=finding)
@@ -398,7 +397,6 @@ def edit_finding(request, fid):
         jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
     if get_system_setting('enable_trello') and TRELLO_PKey.objects.filter(product=finding.test.engagement.product) != 0:
         tform = TRELLOFindingForm(enabled=enabled, prefix='trelloform')
-        aaa = 'PPPPPPPPPPPPPPPPPPPPPPPP'
 
     if request.method == 'POST':
         form = FindingForm(request.POST, instance=finding)
@@ -441,10 +439,8 @@ def edit_finding(request, fid):
                 tform = TRELLOFindingForm(request.POST, prefix='trelloform', enabled=enabled)
                 if tform.is_valid():
                     try:
-                        aaa = '111111111111111111111111111'
                         tissue = TRELLO_Issue.objects.get(finding=new_finding)
                     except:
-                        aaa = '222222222222222222222222222'
                         add_trello_issue_task.delay(new_finding, tform.cleaned_data.get('push_to_trello'))
                         tconf = TRELLO_Conf.objects.all().last()
                         token = request.POST.get('trello_token')
@@ -455,7 +451,6 @@ def edit_finding(request, fid):
                             tconf.token = token
                             TRELLO_Conf.save(tconf)
                             if tconf.token:
-                                aaa = new_finding
                                 update_trello_issue_task(new_finding, tconf)
                         pass
             tags = request.POST.getlist('tags')
@@ -493,8 +488,7 @@ def edit_finding(request, fid):
                   {'form': form,
                    'finding': finding,
                    'jform' : jform,
-                   'tform' : tform,
-                   'aaa' : aaa
+                   'tform' : tform
                    })
         else:
             messages.add_message(request,
@@ -513,8 +507,7 @@ def edit_finding(request, fid):
                   {'form': form,
                    'finding': finding,
                    'jform' : jform,
-                   'tform' : tform,
-                   'aaa' : aaa
+                   'tform' : tform
                    })
 
 
