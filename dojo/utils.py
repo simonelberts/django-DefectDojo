@@ -1013,11 +1013,17 @@ def update_trello_issue(new_finding, tconf):
             trello_list = TRELLO_list.objects.get(board_id=trello_boardId,list_name='Back Log')
             #get label
             trello_label = TRELLO_label.objects.get(board_id=trello_boardId,label_name=new_finding.severity)
+            new_card_description = description_builder(description=new_finding.description,
+                                                       vuln_endpoint=new_finding.endpoints,
+                                                       mitigation=new_finding.mitigation,
+                                                       impact=new_finding.impact,
+                                                       references=new_finding.references,
+                                                       notes=new_finding.notes)
             #push new finding to trello
             trello_card = new_trello_card(
                         trello_list.list_id,
                         new_finding.title,
-                        new_finding.description,
+                        new_card_description,
                         trello_label.label_id,HEADERS,PARAMS,URL_BASE)
             #save card to db save new trello item
             new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id,card_id=trello_card)
