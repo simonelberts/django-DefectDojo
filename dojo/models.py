@@ -1089,7 +1089,9 @@ class TRELLO_PKey(models.Model):
 class TRELLO_items(models.Model):
     trello_board_id = models.CharField(max_length=200)
     finding_id = models.CharField(max_length=200)
+    card_id = models.CharField(max_length=200, default=None)
     test_id = models.CharField(max_length=200, default=None)
+    
 
 class TRELLO_conf_list(models.Model):
     trello_conf = models.ForeignKey(TRELLO_Conf, verbose_name="TRELLO Configuration", null=True, blank=True)
@@ -1109,10 +1111,11 @@ class TRELLO_list(models.Model):
 
 
 class TRELLO_card(models.Model):
+    card_id = models.CharField(max_length=200, default=None)
     list_id = models.CharField(max_length=200, default=None)
     card_name = models.CharField(max_length=200)
-    description = models.CharField(max_length=200, default=None)
-    label_id = models.CharField(max_length=200, default=None)
+    description = models.CharField(max_length=10000, default=None, null=True, blank=True)
+    label_id = models.CharField(max_length=200, default=None, null=True, blank=True)
 
 
 class TRELLO_label(models.Model):

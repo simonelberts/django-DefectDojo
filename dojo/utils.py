@@ -2,6 +2,8 @@ import calendar as tcalendar
 import re
 import binascii, os, hashlib
 import json
+from os import name
+
 from Crypto.Cipher import AES
 from calendar import monthrange
 from datetime import date, datetime, timedelta
@@ -25,7 +27,7 @@ from jira import JIRA
 from jira.exceptions import JIRAError
 from dojo.models import Finding, Scan, Test, Test_Type, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
-                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_list, TRELLO_label, TRELLO_Issue, \
+                        TRELLO_PKey, TRELLO_board, TRELLO_items, TRELLO_list, TRELLO_card, TRELLO_label, TRELLO_Issue, \
                         FindingImage, Alerts, System_Settings, Notifications
 from django_slack import slack_message
 # from dojo.trello_default import trello_default
@@ -830,14 +832,42 @@ def push_finding_to_trello():
 
 
 # Helper methods
-def request_helper(url, params, HEADERS):
-    response = requests.request(method="POST", url=url, data=json.dumps(params), headers=HEADERS)
-    return response.json()
+def request_helper(url, params, HEADERS, requestMethod,):
+    if requestMethod == "PUT":
+        response = requests.request(method=requestMethod, url=url, params=params, headers=HEADERS)
+        return response
+    else:
+        response = requests.request(method="POST", url=url, data=json.dumps(params), headers=HEADERS)
+        return response.json()
 
 def params_builder(dictionary, PARAMS):
     tmp_params = PARAMS
     tmp_params.update(dictionary)
     return tmp_params
+
+
+def description_builder(description, vuln_endpoint, mitigation, impact, references, notes):
+    # kwargs need to have the same name corresponding with the arguments array below.
+    # arguments = ['description', 'vuln_endpoint', 'mitigation', 'impact', 'references', 'notes']
+    # headlines = ['Description', 'Vulnerable Endpoints', 'Mitigation', 'Impact', 'References', 'Notes']
+
+    desc = ""
+    desc += '***Description***\n'
+    desc += description + '\n\n'
+    desc += '***Vulnerable Endpoints***\n'
+    desc += str(vuln_endpoint) + '\n\n'
+    desc += '***Mitigation***\n'
+    desc += mitigation + '\n\n'
+    desc += '***Description***\n'
+    desc += description + '\n\n'
+    desc += '***Impact***\n'
+    desc += impact + '\n\n'
+    desc += '***References***\n'
+    desc += references + '\n\n'
+    desc += '***Notes***\n'
+    desc += str(notes) + '\n\n'
+
+    return desc
 
 
 def create_default_board(HEADERS,PARAMS,URL_BASE,new_finding):
@@ -851,7 +881,7 @@ def create_default_board(HEADERS,PARAMS,URL_BASE,new_finding):
                              'defaultLists': 'false',
                              'desc': 'This is an automatically generated board from DefectDojo. ' +
                              'This board contains all vulnerabilities, which are published through DefectDojo.'}, PARAMS)
-    board_data = request_helper(url, params, HEADERS)
+    board_data = request_helper(url, params, HEADERS, requestMethod="POST")
 
     return board_data
 
@@ -864,7 +894,7 @@ def create_default_lists(boardId, HEADERS,PARAMS,URL_BASE):
 
     for name in names_dict:
         params = params_builder({'name': name, 'idBoard': boardId, 'pos': 'bottom'}, PARAMS)
-        tmp_list_data = request_helper(url, params, HEADERS)
+        tmp_list_data = request_helper(url, params, HEADERS, requestMethod="POST")
 
         #save new list to db
         new_trello_list = TRELLO_list(list_name = name, list_id = tmp_list_data['id'], board_id=boardId)
@@ -897,9 +927,9 @@ def create_default_labels(boardId, HEADERS,PARAMS,URL_BASE):
     colors = ('red', 'orange', 'yellow', 'blue', 'green')
     label_dict = {}
 
-    for i in range(0, 4):
+    for i in range(0, len(labels)):
         params = params_builder({'name': labels[i], 'color': colors[i], 'idBoard': boardId}, PARAMS)
-        tmp_label_data = request_helper(url, params, HEADERS)
+        tmp_label_data = request_helper(url, params, HEADERS, requestMethod="POST")
 
         #save labels to db
         new_trello_label = TRELLO_label(label_name = labels[i], label_color = colors[i], label_id = tmp_label_data['id'], board_id=boardId)
@@ -913,9 +943,19 @@ def new_trello_card(list_id, name, desc, label_id, HEADERS,PARAMS,URL_BASE):
 
     url = URL_BASE + "cards"
     params = params_builder({'name': name, 'desc': desc, 'idList': list_id, 'idLabels': label_id}, PARAMS)
-    card_data = request_helper(url, params, HEADERS)
+    card_data = request_helper(url, params, HEADERS, requestMethod="POST")
 
     return card_data['id']
+
+
+def update_trello_card(card_id, name, desc, label_id, std_headers, std_params, url_base,trello):
+
+    url = url_base + "cards/" + str(card_id)
+    params = params_builder({'name': name, 'desc': desc, 'idLabels': label_id}, std_params)
+
+    put_card = request_helper(url, params, std_headers, requestMethod="PUT")
+    #trello_board = trello.boards.new(put_card)
+    return put_card
 
 
 def update_trello_issue(new_finding, tconf):
@@ -929,18 +969,40 @@ def update_trello_issue(new_finding, tconf):
     trello.set_token(TOKEN)
     boardName = 'scan'
 
+    #check if testboard exists if true push to existing board else make new board and push
     trello_item = TRELLO_items.objects.filter(test_id = new_finding.test_id).exists()
 
     if trello_item:
-        #condition returns true, item exists
-        trello_finding = TRELLO_items.objects.filter(finding_id = new_finding.id).exists()
-        if trello_finding:
+        #condition returns true, finding exists
+        trello_finding = TRELLO_items.objects.filter(finding_id = new_finding.id)
+        if trello_finding.exists():
             #update finding in trello
-            trello_board = trello.boards.new('update')
+            #trello_board = trello.boards.new('update')
             #get boardID
+            trello_obj= TRELLO_items.objects.filter(test_id=new_finding.test_id).first()
+            trello_boardId = trello_obj.trello_board_id
             #get listID
+            trello_listId = TRELLO_list.objects.get(board_id=trello_boardId, list_name='Back Log')
             #get cardID
-            #update finding
+            trello_card_id = trello_finding.get(finding_id = new_finding.id);
+            trello_label = TRELLO_label.objects.get(board_id=trello_boardId, label_name=new_finding.severity)
+            new_card_description = description_builder(description=new_finding.description,
+                                                       vuln_endpoint=new_finding.endpoints,
+                                                       mitigation=new_finding.mitigation,
+                                                       impact=new_finding.impact,
+                                                       references=new_finding.references,
+                                                       notes=new_finding.notes)
+                                                 # description, vuln_endpoint, mitigation, impact, references, notes
+            updated_trello_card = update_trello_card(card_id=trello_card_id.card_id,
+                                                     name=new_finding.title,
+                                                     desc=new_card_description,
+                                                     label_id=trello_label.label_id,
+                                                     std_headers=HEADERS,
+                                                     std_params=PARAMS,
+                                                     url_base=URL_BASE,
+                                                     trello=trello)
+            #trello_board = trello.boards.new('test2')
+            #trello_board = trello.boards.new(URL_BASE)
         else:
             #push new finding to trello
             #trello_board = trello.boards.new('new finding')
@@ -951,15 +1013,23 @@ def update_trello_issue(new_finding, tconf):
             trello_list = TRELLO_list.objects.get(board_id=trello_boardId,list_name='Back Log')
             #get label
             trello_label = TRELLO_label.objects.get(board_id=trello_boardId,label_name=new_finding.severity)
+            new_card_description = description_builder(description=new_finding.description,
+                                                       vuln_endpoint=new_finding.endpoints,
+                                                       mitigation=new_finding.mitigation,
+                                                       impact=new_finding.impact,
+                                                       references=new_finding.references,
+                                                       notes=new_finding.notes)
             #push new finding to trello
             trello_card = new_trello_card(
                         trello_list.list_id,
                         new_finding.title,
-                        new_finding.description,
+                        new_card_description,
                         trello_label.label_id,HEADERS,PARAMS,URL_BASE)
             #save card to db save new trello item
-            new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id)
+            new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=trello_boardId,test_id=new_finding.test_id,card_id=trello_card)
             new_trello_item.save()
+            add_trello_card = TRELLO_card(card_name=new_finding.title, list_id=trello_list.list_id, description=new_finding.description, label_id=trello_label.label_id, card_id=trello_card)
+            add_trello_card.save()
     else:
         #condition returns false, item does not exist and a new board has to be created
         #make new trello board
@@ -970,9 +1040,6 @@ def update_trello_issue(new_finding, tconf):
         board_name = trello_board.get('name')
         board_url = trello_board.get('url')
         board_shortUrl = trello_board.get('shortUrl')
-        #save new trello item
-        new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=board_id,test_id=new_finding.test_id)
-        new_trello_item.save()
         #save new board to db
         new_trello_board = TRELLO_board(trello_board_id=board_id,trello_board_name=board_name,shortUrl=board_url,url = board_shortUrl)
         new_trello_board.save()
@@ -986,6 +1053,11 @@ def update_trello_issue(new_finding, tconf):
                         new_finding.title,
                         new_finding.description,
                         trello_default_labels['Critical'],HEADERS,PARAMS,URL_BASE)
+        #save new trello item
+        new_trello_item = TRELLO_items(finding_id=new_finding.id, trello_board_id=board_id,test_id=new_finding.test_id,card_id=trello_card)
+        new_trello_item.save()
+        add_trello_card = TRELLO_card(card_name=new_finding.title, list_id=trello_lists['Back Log'], description=new_finding.description, card_id=trello_card)
+        add_trello_card.save()
 
 
 def close_epic(eng, push_to_jira):
